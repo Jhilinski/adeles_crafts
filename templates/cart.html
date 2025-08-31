@@ -39,16 +39,43 @@
         }
         </script>{% extends 'base.html' %}
 {% block content %}
-    <h2>{{ item.name }}</h2>
-    <img src="{{ url_for('uploaded_file', filename=item.image_path) | default(url_for('static', filename='Uploads/placeholder.jpg')) }}" alt="{{ item.name }}" width="300">
-    <p>{{ item.description }}</p>
-    <p>Category: {{ item.category }}</p>
-    {% if item.price > 0 %}
-        <p>Price: ${{ item.price }}</p>
-        <form action="{{ url_for('add_to_cart', item_id=item.id) }}" method="POST">
-            <button type="submit">Add to Cart</button>
-        </form>
+    <h2>Your Cart</h2>
+    {% if cart_items %}
+        <table style="width:100%; border-collapse: collapse;">
+            <tr>
+                <th>Item</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Total</th>
+                <th>Action</th>
+            </tr>
+            {% for item in cart_items %}
+                <tr>
+                    <td>
+                        <img src="{{ url_for('uploaded_file', filename=item.image_path) | default(url_for('static', filename='Uploads/placeholder.jpg')) }}" alt="{{ item.name }}" width="50">
+                        {{ item.name }}
+                    </td>
+                    <td>${{ item.price }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>${{ (item.price * item.quantity)|round(2) }}</td>
+                    <td>
+                        <form action="{{ url_for('remove_from_cart', item_id=item.id) }}" method="POST">
+                            <button type="submit">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+        <p><strong>Total: ${{ total|round(2) }}</strong></p>
+        {% if current_user.is_authenticated %}
+            <form action="{{ url_for('submit_order') }}" method="POST">
+                <button type="submit">Submit Order</button>
+            </form>
+            <p>Contact Adele at <a href="mailto:adelescrafts@yahoo.com">adelescrafts@yahoo.com</a> for payment and shipping.</p>
+        {% else %}
+            <p>Please <a href="{{ url_for('login') }}">log in</a> to submit your order.</p>
+        {% endif %}
     {% else %}
-        <p>For Display Only</p>
+        <p>Your cart is empty.</p>
     {% endif %}
 {% endblock %}

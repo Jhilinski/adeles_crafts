@@ -1,14 +1,57 @@
-<!-- templates/products.html -->
-{% extends 'base.html' %}
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>{% extends 'base.html' %}
 {% block content %}
     <h2>All Products</h2>
     {% for item in items %}
         <div class="item">
-            <img src="{{ url_for('uploaded_file', filename=item.image_path) }}" alt="{{ item.name }}" width="150">
+            <img src="{{ url_for('uploaded_file', filename=item.image_path) | default(url_for('static', filename='Uploads/placeholder.jpg')) }}" alt="{{ item.name }}" width="150">
             <h4>{{ item.name }}</h4>
             <p>{{ item.description|truncate(50) }}</p>
             <p>${{ item.price }}</p>
             <a href="{{ url_for('product_detail', id=item.id) }}">View</a>
+            {% if item.price > 0 %}
+                <form action="{{ url_for('add_to_cart', item_id=item.id) }}" method="POST" style="display:inline;">
+                    <button type="submit">Add to Cart</button>
+                </form>
+            {% endif %}
             {% if current_user.is_authenticated %}
                 <a href="{{ url_for('edit_item', id=item.id) }}">Edit</a>
                 <a href="{{ url_for('delete_item', id=item.id) }}" onclick="return confirm('Are you sure?')">Delete</a>

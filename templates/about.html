@@ -39,16 +39,15 @@
         }
         </script>{% extends 'base.html' %}
 {% block content %}
-    <h2>{{ item.name }}</h2>
-    <img src="{{ url_for('uploaded_file', filename=item.image_path) | default(url_for('static', filename='Uploads/placeholder.jpg')) }}" alt="{{ item.name }}" width="300">
-    <p>{{ item.description }}</p>
-    <p>Category: {{ item.category }}</p>
-    {% if item.price > 0 %}
-        <p>Price: ${{ item.price }}</p>
-        <form action="{{ url_for('add_to_cart', item_id=item.id) }}" method="POST">
-            <button type="submit">Add to Cart</button>
-        </form>
-    {% else %}
-        <p>For Display Only</p>
-    {% endif %}
+    <h2>About Adele's Handmade Crafts</h2>
+    <p>Welcome to Adele's Handmade Crafts, where creativity and passion come together to create unique, heartfelt pieces. Adele, the artist behind the brand, has been crafting for over a decade, specializing in beaded jewelry, plastic canvas creations, and diamond painting art. Each item is meticulously handmade with love and care, designed to bring joy to your life or make the perfect gift for someone special.</p>
+    <p>Our collection includes:</p>
+    <ul>
+        <li><strong>Beaded Jewelry</strong>: Bracelets, earrings, rings, necklaces, ornaments, and keychains crafted with vibrant beads.</li>
+        <li><strong>Plastic Canvas Items</strong>: Religious decor, tissue box holders, bookmarks, and more, blending functionality with artistry.</li>
+        <li><strong>Diamond Painting Creations</strong>: Sparkling keychains, fridge magnets, and other decorative pieces that shine.</li>
+    </ul>
+    <p>Whether you're looking for a unique accessory, a thoughtful gift, or a decorative piece for your home, Adele's Handmade Crafts offers something special for every occasion. Explore our collection, read our blog for crafting tips and stories, and join our community of craft lovers!</p>
+    <p>Contact Adele at <a href="mailto:adelescrafts@yahoo.com">adelescrafts@yahoo.com</a> for payment and shipping.</p>
+    <p>Thank you for supporting small businesses and handmade art!</p>
 {% endblock %}
