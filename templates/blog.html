@@ -1,0 +1,12 @@
+<!-- templates/blog.html -->
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Blog</h2>
+    {% for blog in blogs %}
+        <div class="blog-post">
+            <h4><a href="{{ url_for('blog_detail', id=blog.id) }}">{{ blog.title }}</a></h4>
+            <p>{{ blog.date }}</p>
+            <p>{{ blog.content|truncate(100) }}</p>
+        </div>
+    {% endfor %}
+{% endblock %}

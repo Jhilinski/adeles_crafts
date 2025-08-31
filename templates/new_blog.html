@@ -1,0 +1,10 @@
+<!-- templates/new_blog.html -->
+{% extends 'base.html' %}
+{% block content %}
+    <h2>New Blog Post</h2>
+    <form method="post">
+        <label>Title: <input type="text" name="title" required></label><br>
+        <label>Content: <textarea name="content" required></textarea></label><br>
+        <button type="submit">Publish</button>
+    </form>
+{% endblock %}

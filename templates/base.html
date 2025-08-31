@@ -1,0 +1,53 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adele's Handmade Crafts</title>
+    <meta name="description" content="Discover unique handmade crafts by Adele, including beaded jewelry like bracelets, earrings, rings, necklaces, ornaments, and keychains. Explore plastic canvas items such as religious decor, tissue box holders, and bookmarks. Also available: diamond painted keychains, fridge magnets, and more. Handcrafted with love for every occasion – perfect for gifts or personal treats!">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        header { background: #f8f8f8; padding: 10px; text-align: center; }
+        nav { margin: 10px; }
+        nav a { margin: 0 10px; text-decoration: none; }
+        .container { max-width: 1200px; margin: auto; padding: 20px; }
+        .item { border: 1px solid #ddd; padding: 10px; margin: 10px; display: inline-block; width: 200px; text-align: center; }
+        .blog-post { border-bottom: 1px solid #ddd; padding: 10px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Adele's Handmade Crafts</h1>
+        <nav>
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('products') }}">Products</a>
+            <a href="{{ url_for('blog') }}">Blog</a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('upload_item') }}">Upload Item</a>
+                <a href="{{ url_for('new_blog') }}">New Blog</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+            <form action="{{ url_for('search') }}" method="get" style="display:inline;">
+                <input type="text" name="q" placeholder="Search items...">
+                <button type="submit">Search</button>
+            </form>
+        </nav>
+    </header>
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul>
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

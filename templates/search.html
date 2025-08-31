@@ -1,0 +1,18 @@
+<!-- templates/search.html -->
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Search Results for "{{ query }}"</h2>
+    {% if items %}
+        {% for item in items %}
+            <div class="item">
+                <img src="{{ url_for('uploaded_file', filename=item.image_path) }}" alt="{{ item.name }}" width="150">
+                <h4>{{ item.name }}</h4>
+                <p>{{ item.description|truncate(50) }}</p>
+                <p>${{ item.price }}</p>
+                <a href="{{ url_for('product_detail', id=item.id) }}">View</a>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No results found.</p>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,23 @@
+<!-- templates/home.html -->
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Welcome to Adele's Handmade Crafts</h2>
+    <p>{{ description }}</p>
+    <h3>Featured Products</h3>
+    {% for item in items %}
+        <div class="item">
+            <img src="{{ url_for('uploaded_file', filename=item.image_path) }}" alt="{{ item.name }}" width="150">
+            <h4>{{ item.name }}</h4>
+            <p>{{ item.description|truncate(50) }}</p>
+            <p>${{ item.price }}</p>
+            <a href="{{ url_for('product_detail', id=item.id) }}">View</a>
+        </div>
+    {% endfor %}
+    <h3>Latest Blog Posts</h3>
+    {% for blog in blogs %}
+        <div class="blog-post">
+            <h4><a href="{{ url_for('blog_detail', id=blog.id) }}">{{ blog.title }}</a></h4>
+            <p>{{ blog.date }}</p>
+        </div>
+    {% endfor %}
+{% endblock %}
