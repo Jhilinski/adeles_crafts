@@ -9,6 +9,7 @@ from flask_migrate import Migrate
 import os
 from datetime import datetime
 import uuid
+from collections import Counter
 
 app = Flask(__name__)
 
@@ -46,8 +47,8 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(150), unique=True)
     email = db.Column(db.String(150), unique=True)
     password = db.Column(db.String(150))
-    full_name = db.Column(db.String(150))  # New field for full name
-    is_admin = db.Column(db.Boolean, default=False)  # New field for admin privileges
+    full_name = db.Column(db.String(150))  # Field for full name
+    is_admin = db.Column(db.Boolean, default=False)  # Field for admin privileges
 
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -174,15 +175,25 @@ def submit_order():
         for cart_item in session['cart']:
             item = Item.query.get(cart_item['id'])
             if item and item.price > 0:
-                order.items.append(item)
+                for _ in range(cart_item['quantity']):  # Add item for each quantity
+                    order.items.append(item)
         db.session.add(order)
         db.session.commit()
         session.pop('cart', None)  # Clear cart
         flash(f'Order #{order.order_number} submitted! Please contact Adele at adelescrafts@yahoo.com for payment and shipping details.')
-        return redirect(url_for('home'))
+        return redirect(url_for('orders'))
     except Exception as e:
         flash(f'Error submitting order: {str(e)}')
         return redirect(url_for('cart'))
+
+@app.route('/orders')
+@login_required
+def orders():
+    if current_user.is_admin:
+        orders = Order.query.order_by(Order.created_at.desc()).all()
+    else:
+        orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.created_at.desc()).all()
+    return render_template('orders.html', orders=orders)
 
 @app.route('/order/<int:id>')
 @login_required
@@ -191,7 +202,23 @@ def order_detail(id):
     if not (current_user.is_admin or current_user.id == order.user_id):
         flash('You do not have permission to view this order.')
         return redirect(url_for('home'))
-    return render_template('order_detail.html', order=order)
+    # Calculate item quantities and total
+    item_counts = Counter(item.id for item in order.items)
+    order_items = []
+    total = 0
+    for item_id, quantity in item_counts.items():
+        item = Item.query.get(item_id)
+        if item:
+            order_items.append({
+                'id': item.id,
+                'name': item.name,
+                'price': item.price,
+                'quantity': quantity,
+                'image_path': item.image_path,
+                'subtotal': item.price * quantity
+            })
+            total += item.price * quantity
+    return render_template('order_detail.html', order=order, order_items=order_items, total=total)
 
 @app.route('/order/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -221,7 +248,13 @@ def delete_order(id):
     db.session.delete(order)
     db.session.commit()
     flash(f'Order #{order.order_number} deleted successfully.')
-    return redirect(url_for('home'))
+    return redirect(url_for('orders'))
+
+@app.route('/admin/users')
+@admin_required
+def list_users():
+    users = User.query.all()
+    return render_template('users.html', users=users)
 
 @app.route('/about')
 def about():
@@ -251,7 +284,7 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
-        full_name = request.form['full_name']  # New field
+        full_name = request.form['full_name']
         password = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
         new_user = User(username=username, email=email, full_name=full_name, password=password)
         db.session.add(new_user)
