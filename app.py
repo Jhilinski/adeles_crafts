@@ -6,10 +6,15 @@ from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
 from flask_session import Session
+from dotenv import load_dotenv
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '7ba4404e70259612726d4995b2b0a812'  # Change to a secure random key
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:mynewtoy@localhost/adeles_crafts'  # Update with your MySQL credentials
+
+# Load environment variables from .env file
+load_dotenv()
+
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")  # Change to a secure random key
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")  # Update with your MySQL credentials
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
