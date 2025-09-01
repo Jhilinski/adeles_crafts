@@ -3,21 +3,22 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-import os
-from datetime import datetime
 from flask_session import Session
 from dotenv import load_dotenv
 from flask_migrate import Migrate
+import os
+from datetime import datetime
+import uuid
 
 app = Flask(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
 
-app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")  # Change to a secure random key
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")  # Ensure secure key in .env
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")  # Update with your MySQL credentials
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
+app.config['UPLOAD_FOLDER'] = os.path.join('static', 'Uploads')
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['SESSION_TYPE'] = 'filesystem'  # Use filesystem for session storage
 
@@ -45,6 +46,8 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(150), unique=True)
     email = db.Column(db.String(150), unique=True)
     password = db.Column(db.String(150))
+    full_name = db.Column(db.String(150))  # New field for full name
+    is_admin = db.Column(db.Boolean, default=False)  # New field for admin privileges
 
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -58,20 +61,34 @@ class Order(db.Model):
     __tablename__ = 'orders'  # Explicitly set table name to avoid reserved keyword
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    order_number = db.Column(db.String(36), unique=True, default=lambda: str(uuid.uuid4()))  # Unique order number
     status = db.Column(db.String(50), default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     items = db.relationship('Item', secondary=order_items, backref='orders')
-    
+    user = db.relationship('User', backref='orders')  # Relationship to User
+
 class Blog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150))
     content = db.Column(db.Text)
     date = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship('User', backref='blogs')  # Relationship to User for username
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+# Admin required decorator
+def admin_required(f):
+    @login_required
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_admin:
+            flash('You need admin privileges to access this page.')
+            return redirect(url_for('home'))
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
 
 # Routes
 @app.route('/')
@@ -161,11 +178,50 @@ def submit_order():
         db.session.add(order)
         db.session.commit()
         session.pop('cart', None)  # Clear cart
-        flash('Order submitted! Please contact Adele at adelescrafts@yahoo.com for payment and shipping details.')
+        flash(f'Order #{order.order_number} submitted! Please contact Adele at adelescrafts@yahoo.com for payment and shipping details.')
         return redirect(url_for('home'))
     except Exception as e:
         flash(f'Error submitting order: {str(e)}')
         return redirect(url_for('cart'))
+
+@app.route('/order/<int:id>')
+@login_required
+def order_detail(id):
+    order = Order.query.get_or_404(id)
+    if not (current_user.is_admin or current_user.id == order.user_id):
+        flash('You do not have permission to view this order.')
+        return redirect(url_for('home'))
+    return render_template('order_detail.html', order=order)
+
+@app.route('/order/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_order(id):
+    order = Order.query.get_or_404(id)
+    if not (current_user.is_admin or current_user.id == order.user_id):
+        flash('You do not have permission to edit this order.')
+        return redirect(url_for('home'))
+    if request.method == 'POST':
+        status = request.form.get('status')
+        if status in ['pending', 'completed', 'canceled']:
+            order.status = status
+            db.session.commit()
+            flash(f'Order #{order.order_number} updated successfully.')
+            return redirect(url_for('order_detail', id=order.id))
+        else:
+            flash('Invalid status.')
+    return render_template('edit_order.html', order=order)
+
+@app.route('/order/delete/<int:id>')
+@login_required
+def delete_order(id):
+    order = Order.query.get_or_404(id)
+    if not (current_user.is_admin or current_user.id == order.user_id):
+        flash('You do not have permission to delete this order.')
+        return redirect(url_for('home'))
+    db.session.delete(order)
+    db.session.commit()
+    flash(f'Order #{order.order_number} deleted successfully.')
+    return redirect(url_for('home'))
 
 @app.route('/about')
 def about():
@@ -195,8 +251,9 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
+        full_name = request.form['full_name']  # New field
         password = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
-        new_user = User(username=username, email=email, password=password)
+        new_user = User(username=username, email=email, full_name=full_name, password=password)
         db.session.add(new_user)
         db.session.commit()
         flash('Registration successful! Please log in.')
@@ -221,7 +278,7 @@ def logout():
     return redirect(url_for('home'))
 
 @app.route('/admin/upload', methods=['GET', 'POST'])
-@login_required
+@admin_required
 def upload_item():
     if request.method == 'POST':
         name = request.form['name']
@@ -246,7 +303,7 @@ def upload_item():
     return render_template('upload.html')
 
 @app.route('/admin/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
+@admin_required
 def edit_item(id):
     item = Item.query.get_or_404(id)
     if request.method == 'POST':
@@ -266,7 +323,7 @@ def edit_item(id):
     return render_template('edit.html', item=item)
 
 @app.route('/admin/delete/<int:id>')
-@login_required
+@admin_required
 def delete_item(id):
     item = Item.query.get_or_404(id)
     db.session.delete(item)

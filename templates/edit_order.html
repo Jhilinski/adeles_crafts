@@ -39,23 +39,16 @@
         }
         </script>{% extends 'base.html' %}
 {% block content %}
-    <h2>All Products</h2>
-    {% for item in items %}
-        <div class="item">
-            <img src="{{ url_for('uploaded_file', filename=item.image_path) | default(url_for('static', filename='Uploads/placeholder.jpg')) }}" alt="{{ item.name }}" width="150">
-            <h4>{{ item.name }}</h4>
-            <p>{{ item.description|truncate(50) }}</p>
-            <p>${{ item.price }}</p>
-            <a href="{{ url_for('product_detail', id=item.id) }}">View</a>
-            {% if item.price > 0 %}
-                <form action="{{ url_for('add_to_cart', item_id=item.id) }}" method="POST" style="display:inline;">
-                    <button type="submit">Add to Cart</button>
-                </form>
-            {% endif %}
-            {% if current_user.is_authenticated and current_user.is_admin %}
-                <a href="{{ url_for('edit_item', id=item.id) }}">Edit</a>
-                <a href="{{ url_for('delete_item', id=item.id) }}" onclick="return confirm('Are you sure?')">Delete</a>
-            {% endif %}
-        </div>
-    {% endfor %}
+    <h2>Edit Order #{{ order.order_number }}</h2>
+    <form method="POST">
+        <p>
+            <label>Status:</label><br>
+            <select name="status" required>
+                <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
+                <option value="canceled" {% if order.status == 'canceled' %}selected{% endif %}>Canceled</option>
+            </select>
+        </p>
+        <button type="submit">Save Changes</button>
+    </form>
 {% endblock %}
