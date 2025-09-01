@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 from flask_session import Session
 from dotenv import load_dotenv
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 
@@ -21,6 +22,7 @@ app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['SESSION_TYPE'] = 'filesystem'  # Use filesystem for session storage
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 Session(app)  # Initialize session
@@ -31,9 +33,9 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-# Association table for Order-Item relationship
+# Association table for Orders-Item relationship
 order_items = db.Table('order_items',
-    db.Column('order_id', db.Integer, db.ForeignKey('order.id'), primary_key=True),
+    db.Column('order_id', db.Integer, db.ForeignKey('orders.id'), primary_key=True),
     db.Column('item_id', db.Integer, db.ForeignKey('item.id'), primary_key=True)
 )
 
@@ -53,12 +55,13 @@ class Item(db.Model):
     category = db.Column(db.String(100))
 
 class Order(db.Model):
+    __tablename__ = 'orders'  # Explicitly set table name to avoid reserved keyword
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     status = db.Column(db.String(50), default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     items = db.relationship('Item', secondary=order_items, backref='orders')
-
+    
 class Blog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150))
