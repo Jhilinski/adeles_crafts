@@ -52,6 +52,10 @@
         .container { max-width: 1200px; margin: auto; padding: 20px; }
         .item { border: 1px solid #ddd; padding: 10px; margin: 10px; display: inline-block; width: 200px; text-align: center; }
         .blog-post { border-bottom: 1px solid #ddd; padding: 10px; }
+        .flash-messages { list-style: none; padding: 0; }
+        .flash-messages li { padding: 10px; margin: 5px 0; border-radius: 5px; }
+        .flash-messages li.error { background: #f8d7da; color: #721c24; }
+        .flash-messages li.success { background: #d4edda; color: #155724; }
     </style>
 </head>
 <body>
@@ -82,11 +86,11 @@
         </nav>
     </header>
     <div class="container">
-        {% with messages = get_flashed_messages() %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <ul>
-                    {% for message in messages %}
-                        <li>{{ message }}</li>
+                <ul class="flash-messages">
+                    {% for category, message in messages %}
+                        <li class="{{ category }}">{{ message }}</li>
                     {% endfor %}
                 </ul>
             {% endif %}

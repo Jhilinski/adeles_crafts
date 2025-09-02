@@ -1,1 +1,13 @@
 .env
+myenv/
+__pycache__/
+instance/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+tmp/
+dist/
+build/
+*.egg-info/
